@@ -37,7 +37,7 @@ export async function createTokenMintAndAssociatedTokenAccount(
     web3.SystemProgram.transfer({
       fromPubkey: payer.publicKey,
       toPubkey: mintAuthority.publicKey,
-      lamports: web3.LAMPORTS_PER_SOL,
+      lamports: 0.1 * web3.LAMPORTS_PER_SOL,
     })
   );
   await sendTransaction(connection, ixs, [payer]);

@@ -13,6 +13,7 @@ import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import {
   accountExist,
@@ -267,7 +268,7 @@ export async function initialize(
     initAmount0: new BN(10000000000),
     initAmount1: new BN(20000000000),
   },
-  createPoolFee = new PublicKey("DNXgeM9EiiaAbaWvwjHj9fQQLAX5ZsfHyvmYUNRAdNC8")
+  createPoolFee?: PublicKey
 ) {
   const [auth] = await getAuthAddress(program.programId);
   const [poolAddress] = await getPoolAddress(
@@ -316,8 +317,34 @@ export async function initialize(
     false,
     token1Program
   );
+  
+  // If no createPoolFee provided, create a token account for fee collection
+  if (!createPoolFee) {
+    const connection = program.provider.connection;
+    const feeOwner = new PublicKey("GsV1jugD8ftfWBYNykA9SLK2V4mQqUW2sLop8MAfjVRq");
+    createPoolFee = getAssociatedTokenAddressSync(
+      token0, // Use token0 as the fee token
+      feeOwner,
+      false,
+      token0Program
+    );
+    
+    // Check if the fee token account exists, if not create it
+    const feeAccountInfo = await connection.getAccountInfo(createPoolFee);
+    if (!feeAccountInfo) {
+      const ix = createAssociatedTokenAccountInstruction(
+        creator.publicKey, // payer
+        createPoolFee, // ata
+        feeOwner, // owner
+        token0, // mint
+        token0Program
+      );
+      await sendTransaction(connection, [ix], [creator], confirmOptions);
+    }
+  }
+  
   await program.methods
-    .initialize(initAmount.initAmount0, initAmount.initAmount1, new BN(0))
+    .initialize(initAmount.initAmount0, initAmount.initAmount1, new BN(0), 0, null)
     .accountsPartial({
       creator: creator.publicKey,
       ammConfig: configAddress,

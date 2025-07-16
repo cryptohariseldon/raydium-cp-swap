@@ -130,7 +130,7 @@ pub struct Initialize<'info> {
     /// create pool fee account
     #[account(
         mut,
-        address= crate::create_pool_fee_reveiver::ID,
+        constraint = create_pool_fee.owner == crate::create_pool_fee_reveiver::ID,
     )]
     pub create_pool_fee: Box<InterfaceAccount<'info, TokenAccount>>,
 
