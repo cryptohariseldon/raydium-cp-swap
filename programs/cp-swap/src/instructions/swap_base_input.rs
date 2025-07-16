@@ -82,6 +82,14 @@ pub fn swap_base_input(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u
     {
         return err!(ErrorCode::NotApproved);
     }
+    
+    // Validate authority for custom authority pools
+    if pool_state.is_custom_authority() {
+        require!(
+            ctx.accounts.payer.key() == pool_state.custom_authority,
+            ErrorCode::InvalidAuthority
+        );
+    }
 
     let transfer_fee =
         get_transfer_fee(&ctx.accounts.input_token_mint.to_account_info(), amount_in)?;
@@ -235,6 +243,7 @@ pub fn swap_base_input(ctx: Context<Swap>, amount_in: u64, minimum_amount_out: u
         ctx.accounts.input_token_mint.decimals,
     )?;
 
+    // Vaults are always owned by the PDA, even for custom authority pools
     transfer_from_pool_vault_to_user(
         ctx.accounts.authority.to_account_info(),
         ctx.accounts.output_vault.to_account_info(),

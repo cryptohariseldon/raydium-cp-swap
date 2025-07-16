@@ -166,6 +166,8 @@ pub fn initialize(
     init_amount_0: u64,
     init_amount_1: u64,
     mut open_time: u64,
+    authority_type: u8,
+    custom_authority: Option<Pubkey>,
 ) -> Result<()> {
     if !(is_supported_mint(&ctx.accounts.token_0_mint).unwrap()
         && is_supported_mint(&ctx.accounts.token_1_mint).unwrap())
@@ -176,6 +178,16 @@ pub fn initialize(
     if ctx.accounts.amm_config.disable_create_pool {
         return err!(ErrorCode::NotApproved);
     }
+    
+    // Validate authority type and custom authority
+    if authority_type > 1 {
+        return err!(ErrorCode::InvalidAuthority);
+    }
+    
+    if authority_type == 1 && custom_authority.is_none() {
+        return err!(ErrorCode::InvalidAuthority);
+    }
+    
     let block_timestamp = clock::Clock::get()?.unix_timestamp as u64;
     if open_time <= block_timestamp {
         open_time = block_timestamp + 1;
@@ -327,6 +339,8 @@ pub fn initialize(
         &ctx.accounts.token_1_mint,
         &ctx.accounts.lp_mint,
         ctx.accounts.observation_state.key(),
+        authority_type,
+        custom_authority,
     );
 
     Ok(())

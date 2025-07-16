@@ -109,6 +109,14 @@ pub fn withdraw(
     if !pool_state.get_status_by_bit(PoolStatusBitIndex::Withdraw) {
         return err!(ErrorCode::NotApproved);
     }
+    
+    // For custom authority pools, only the custom authority can withdraw
+    if pool_state.is_custom_authority() {
+        require!(
+            ctx.accounts.owner.key() == pool_state.custom_authority,
+            ErrorCode::InvalidAuthority
+        );
+    }
     let (total_token_0_amount, total_token_1_amount) = pool_state.vault_amount_without_fee(
         ctx.accounts.token_0_vault.amount,
         ctx.accounts.token_1_vault.amount,

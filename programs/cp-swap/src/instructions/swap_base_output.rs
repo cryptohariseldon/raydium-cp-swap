@@ -20,6 +20,14 @@ pub fn swap_base_output(
     {
         return err!(ErrorCode::NotApproved);
     }
+    
+    // Validate authority for custom authority pools
+    if pool_state.is_custom_authority() {
+        require!(
+            ctx.accounts.payer.key() == pool_state.custom_authority,
+            ErrorCode::InvalidAuthority
+        );
+    }
     let out_transfer_fee = get_transfer_inverse_fee(
         &ctx.accounts.output_token_mint.to_account_info(),
         amount_out_less_fee,

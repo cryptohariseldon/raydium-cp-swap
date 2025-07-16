@@ -32,4 +32,6 @@ pub enum ErrorCode {
     InitLpAmountTooLess,
     #[msg("TransferFee calculate not match")]
     TransferFeeCalculateNotMatch,
+    #[msg("Invalid authority configuration")]
+    InvalidAuthority,
 }

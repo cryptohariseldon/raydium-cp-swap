@@ -74,12 +74,21 @@ pub struct PoolState {
     pub open_time: u64,
     /// recent epoch
     pub recent_epoch: u64,
-    /// padding for future updates
-    pub padding: [u64; 31],
+    
+    /// Authority type: 0 = Default PDA, 1 = Custom
+    pub authority_type: u8,
+    /// Custom authority (used when authority_type == 1)
+    pub custom_authority: Pubkey,
+    /// Pool authority bump (for custom authority validation)
+    pub custom_auth_bump: u8,
+    
+    /// padding for future updates (reduced from 31 to accommodate new fields)
+    pub padding: [u64; 27],
 }
 
 impl PoolState {
-    pub const LEN: usize = 8 + 10 * 32 + 1 * 5 + 8 * 7 + 8 * 31;
+    // Updated to account for: 11 Pubkeys (32 bytes each), 7 u8s, 7 u64s, and 27 u64s padding
+    pub const LEN: usize = 8 + 11 * 32 + 1 * 7 + 8 * 7 + 8 * 27;
 
     pub fn initialize(
         &mut self,
@@ -94,6 +103,8 @@ impl PoolState {
         token_1_mint: &InterfaceAccount<Mint>,
         lp_mint: &InterfaceAccount<Mint>,
         observation_key: Pubkey,
+        authority_type: u8,
+        custom_authority: Option<Pubkey>,
     ) {
         self.amm_config = amm_config.key();
         self.pool_creator = pool_creator.key();
@@ -116,7 +127,10 @@ impl PoolState {
         self.fund_fees_token_1 = 0;
         self.open_time = open_time;
         self.recent_epoch = Clock::get().unwrap().epoch;
-        self.padding = [0u64; 31];
+        self.authority_type = authority_type;
+        self.custom_authority = custom_authority.unwrap_or_default();
+        self.custom_auth_bump = if authority_type == 1 { 0 } else { auth_bump };
+        self.padding = [0u64; 27];
     }
 
     pub fn set_status(&mut self, status: u8) {
@@ -156,6 +170,24 @@ impl PoolState {
             token_1_amount as u128 * Q32 as u128 / token_0_amount as u128,
             token_0_amount as u128 * Q32 as u128 / token_1_amount as u128,
         )
+    }
+    
+    /// Get the pool authority based on authority type
+    pub fn get_pool_authority(&self, program_id: &Pubkey) -> Pubkey {
+        if self.authority_type == 1 {
+            self.custom_authority
+        } else {
+            // Use the default PDA authority
+            Pubkey::find_program_address(
+                &[crate::AUTH_SEED.as_bytes()],
+                program_id
+            ).0
+        }
+    }
+    
+    /// Check if the pool uses custom authority
+    pub fn is_custom_authority(&self) -> bool {
+        self.authority_type == 1
     }
 }
 

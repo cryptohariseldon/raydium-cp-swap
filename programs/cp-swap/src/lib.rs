@@ -145,14 +145,18 @@ pub mod raydium_cp_swap {
     /// * `init_amount_0` - the initial amount_0 to deposit
     /// * `init_amount_1` - the initial amount_1 to deposit
     /// * `open_time` - the timestamp allowed for swap
+    /// * `authority_type` - 0 for default PDA authority, 1 for custom authority
+    /// * `custom_authority` - custom authority pubkey (required when authority_type = 1)
     ///
     pub fn initialize(
         ctx: Context<Initialize>,
         init_amount_0: u64,
         init_amount_1: u64,
         open_time: u64,
+        authority_type: u8,
+        custom_authority: Option<Pubkey>,
     ) -> Result<()> {
-        instructions::initialize(ctx, init_amount_0, init_amount_1, open_time)
+        instructions::initialize(ctx, init_amount_0, init_amount_1, open_time, authority_type, custom_authority)
     }
 
     /// Deposit lp token to the pool
